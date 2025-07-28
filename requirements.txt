@@ -1,0 +1,36 @@
+# Core computer vision and ML libraries
+opencv-python>=4.8.0
+numpy>=1.24.0
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0  # YOLOv8 and unified interface
+
+# YOLOv5 and YOLOv7 support
+yolov5>=7.0.0
+# Note: YOLOv7 will be loaded via torch.hub
+
+# Tracking algorithms
+filterpy>=1.4.5  # For Kalman filters used in trackers
+scipy>=1.10.0
+scikit-learn>=1.3.0
+
+# DeepSORT dependencies
+deep-sort-realtime>=1.3.0
+
+# Video processing and utilities
+pillow>=9.5.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Configuration and logging
+pyyaml>=6.0
+python-dotenv>=1.0.0
+loguru>=0.7.0
+
+# Performance and utilities
+tqdm>=4.65.0
+psutil>=5.9.0
+
+# Optional: For better performance
+# onnx>=1.14.0
+# onnxruntime>=1.15.0 

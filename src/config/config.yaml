@@ -1,0 +1,99 @@
+# Main Configuration for Detect-Track System
+
+# Video Input Configuration
+video:
+  # Source options: 'camera', 'file'
+  source: 'camera'
+  
+  # Camera settings (when source is 'camera')
+  camera:
+    device_id: 0
+    width: 640
+    height: 480
+    fps: 30
+  
+  # File settings (when source is 'file')
+  file:
+    path: ''  # Set this to your video file path
+    start_frame: 0
+    end_frame: -1  # -1 means until end of video
+
+# Detection Configuration
+detection:
+  # Model options: 'yolov5n', 'yolov5s', 'yolov7', 'yolov8n', 'yolov8s'
+  model: 'yolov8n'
+  
+  # Detection parameters
+  confidence_threshold: 0.5
+  iou_threshold: 0.45
+  max_detections: 100
+  
+  # Model-specific settings
+  yolov5:
+    weights: 'yolov5n.pt'  # or 'yolov5s.pt'
+  yolov7:
+    weights: 'yolov7.pt'
+  yolov8:
+    weights: 'yolov8n.pt'  # or 'yolov8s.pt'
+
+# Tracking Configuration
+tracking:
+  # Tracker options: 'nvdcf', 'deepsort', 'botsort'
+  algorithm: 'deepsort'
+  
+  # Common tracking parameters
+  max_lost_frames: 30  # Continue tracks for up to N frames without detections
+  min_track_length: 3  # Minimum frames to consider a valid track
+  
+  # DeepSORT specific settings
+  deepsort:
+    max_age: 30
+    n_init: 3
+    max_iou_distance: 0.7
+    max_cosine_distance: 0.2
+    
+  # NvDCF specific settings (OpenCV tracker)
+  nvdcf:
+    max_age: 30
+    
+  # BOTSort specific settings
+  botsort:
+    track_high_thresh: 0.6
+    track_low_thresh: 0.1
+    new_track_thresh: 0.7
+    match_thresh: 0.8
+
+# Logging Configuration
+logging:
+  # Log levels: DEBUG, INFO, WARNING, ERROR
+  level: 'INFO'
+  
+  # Output settings
+  save_video: true
+  save_detections: true
+  save_tracks: true
+  
+  # Output paths
+  output_dir: 'outputs'
+  video_output: 'tracked_video.mp4'
+  detections_output: 'detections.json'
+  tracks_output: 'tracks.json'
+
+# Performance Configuration
+performance:
+  # Frame processing
+  skip_frames: 0  # Process every Nth frame (0 = process all)
+  resize_input: true
+  target_size: [640, 640]  # [width, height]
+  
+  # Device settings
+  device: 'auto'  # 'auto', 'cpu', 'cuda'
+  
+# Display Configuration
+display:
+  show_video: true
+  show_detections: true
+  show_tracks: true
+  show_fps: true
+  line_thickness: 2
+  font_scale: 0.6 

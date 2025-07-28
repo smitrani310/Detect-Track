@@ -1,0 +1,66 @@
+# Demo Configuration for Detect-Track System
+# This configuration is optimized for demonstration purposes
+
+# Video Input Configuration
+video:
+  # Use camera for live demo (change to 'file' for video file)
+  source: 'camera'
+  
+  # Camera settings
+  camera:
+    device_id: 0
+    width: 640
+    height: 480
+    fps: 30
+  
+  # Video file settings (when source is 'file')
+  file:
+    path: 'data/sample_video.mp4'
+    start_frame: 0
+    end_frame: -1
+
+# Detection Configuration - Using fast model for demo
+detection:
+  model: 'yolov8n'  # Fast model for real-time demo
+  confidence_threshold: 0.5
+  iou_threshold: 0.45
+  max_detections: 50
+
+# Tracking Configuration - Using DeepSORT for good accuracy
+tracking:
+  algorithm: 'deepsort'
+  max_lost_frames: 20  # Shorter for demo
+  min_track_length: 3
+  
+  deepsort:
+    max_age: 20
+    n_init: 3
+    max_iou_distance: 0.7
+    max_cosine_distance: 0.2
+
+# Logging Configuration - Full logging for demo
+logging:
+  level: 'INFO'
+  save_video: true
+  save_detections: true
+  save_tracks: true
+  output_dir: 'outputs/demo'
+  video_output: 'demo_tracked.mp4'
+  detections_output: 'demo_detections.json'
+  tracks_output: 'demo_tracks.json'
+
+# Performance Configuration - Optimized for demo
+performance:
+  skip_frames: 0  # Process all frames for demo
+  resize_input: true
+  target_size: [640, 640]
+  device: 'auto'
+
+# Display Configuration - Show everything for demo
+display:
+  show_video: true
+  show_detections: true
+  show_tracks: true
+  show_fps: true
+  line_thickness: 2
+  font_scale: 0.6 
