@@ -251,13 +251,21 @@ class DetectionTrackLogger:
                 # Draw track box
                 cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 3)
                 
-                # Draw track ID
+                # Draw track ID at top corner
                 track_label = f"ID: {track.track_id}"
                 if track.is_confirmed:
                     track_label += " ✓"
                 
-                cv2.putText(annotated_frame, track_label, (x1, y2 + 20), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                # Get text size for background
+                track_label_size = cv2.getTextSize(track_label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
+                
+                # Draw background rectangle for track ID
+                cv2.rectangle(annotated_frame, (x1, y1 - track_label_size[1] - 10), 
+                            (x1 + track_label_size[0] + 5, y1), color, -1)
+                
+                # Draw track ID text
+                cv2.putText(annotated_frame, track_label, (x1 + 2, y1 - 5), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                 
                 # Draw track center point
                 center_x = int((x1 + x2) / 2)

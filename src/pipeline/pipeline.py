@@ -241,7 +241,9 @@ class DetectionTrackingPipeline:
         """
         # Calculate processing time
         current_time = time.time()
-        processing_time = current_time - self.start_time if self.frame_count == 1 else 0.033  # Approximate
+        frame_duration = current_time - getattr(self, '_last_frame_time', current_time)
+        processing_time = min(frame_duration, 0.1)  # Cap at 100ms to avoid unrealistic values
+        self._last_frame_time = current_time
         
         # Create annotated frame for logging
         annotated_frame = self.logger.draw_annotations(
@@ -278,9 +280,25 @@ class DetectionTrackingPipeline:
         Returns:
             True to continue, False to stop
         """
-        # Calculate FPS
+        # Calculate REAL-TIME FPS using recent frame times
         current_time = time.time()
-        fps = self.frame_count / (current_time - self.start_time) if current_time > self.start_time else 0.0
+        
+        # Initialize frame time tracking
+        if not hasattr(self, '_recent_frame_times'):
+            self._recent_frame_times = []
+        
+        self._recent_frame_times.append(current_time)
+        
+        # Keep only last 30 frame times for rolling average
+        if len(self._recent_frame_times) > 30:
+            self._recent_frame_times.pop(0)
+        
+        # Calculate FPS from recent frames
+        if len(self._recent_frame_times) >= 2:
+            time_span = self._recent_frame_times[-1] - self._recent_frame_times[0]
+            fps = (len(self._recent_frame_times) - 1) / time_span if time_span > 0 else 0.0
+        else:
+            fps = 0.0
         
         # Create display frame
         display_frame = self.logger.draw_annotations(
