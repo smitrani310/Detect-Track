@@ -67,20 +67,49 @@ class DetectionTrackLogger:
         self.video_fps = fps
         self.video_size = frame_size
         
-        # Define codec and create VideoWriter
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        self.video_writer = cv2.VideoWriter(
-            str(self.video_output),
-            fourcc,
-            fps,
-            frame_size
-        )
+        # Try different codecs in order of preference
+        codecs_to_try = [
+            ('mp4v', '.mp4'),  # MPEG-4 Part 2
+            ('XVID', '.avi'),  # Xvid
+            ('MJPG', '.avi'),  # Motion JPEG
+            ('X264', '.mp4'),  # H.264
+        ]
         
-        if self.video_writer.isOpened():
-            logger.info(f"Video writer initialized: {self.video_output}")
-        else:
-            logger.error("Failed to initialize video writer")
-            self.video_writer = None
+        for codec_name, extension in codecs_to_try:
+            try:
+                # Update output filename with correct extension
+                output_path = self.video_output
+                if not str(output_path).endswith(extension):
+                    output_path = output_path.with_suffix(extension)
+                
+                fourcc = cv2.VideoWriter_fourcc(*codec_name)
+                self.video_writer = cv2.VideoWriter(
+                    str(output_path),
+                    fourcc,
+                    fps,
+                    frame_size
+                )
+                
+                # Test if writer is properly initialized
+                if self.video_writer.isOpened():
+                    logger.info(f"Video writer initialized: {output_path} using {codec_name} codec")
+                    self.video_output = output_path  # Update path with correct extension
+                    return
+                else:
+                    self.video_writer.release()
+                    self.video_writer = None
+                    
+            except Exception as e:
+                logger.debug(f"Failed to initialize video writer with {codec_name}: {e}")
+                if self.video_writer:
+                    self.video_writer.release()
+                    self.video_writer = None
+                continue
+        
+        # If all codecs fail, disable video saving
+        logger.warning("Failed to initialize video writer with any codec. Video saving disabled.")
+        self.save_video = False
+        self.video_writer = None
     
     def log_frame_data(self, frame_data: FrameData) -> None:
         """
@@ -136,8 +165,38 @@ class DetectionTrackLogger:
         self.frame_metrics.append(metrics)
         
         # Write frame to video if enabled
-        if self.video_writer and self.video_writer.isOpened():
-            self.video_writer.write(frame_data.image)
+        if self.video_writer and self.video_writer.isOpened() and self.save_video:
+            try:
+                # Validate frame format and size
+                frame = frame_data.image
+                
+                # Ensure frame is the correct size
+                if frame.shape[:2] != (self.video_size[1], self.video_size[0]):  # (height, width)
+                    frame = cv2.resize(frame, self.video_size)
+                
+                # Ensure frame is BGR format with uint8 dtype
+                if len(frame.shape) == 3 and frame.shape[2] == 3:
+                    if frame.dtype != np.uint8:
+                        if frame.max() <= 1.0:
+                            frame = (frame * 255).astype(np.uint8)
+                        else:
+                            frame = frame.astype(np.uint8)
+                else:
+                    logger.warning(f"Unexpected frame format for video writing: {frame.shape}")
+                    return
+                
+                # Write frame
+                success = self.video_writer.write(frame)
+                if not success:
+                    logger.warning("Failed to write frame to video file")
+                    
+            except Exception as e:
+                logger.error(f"Error writing frame to video: {e}")
+                # Disable video writing to prevent further errors
+                self.save_video = False
+                if self.video_writer:
+                    self.video_writer.release()
+                    self.video_writer = None
     
     def draw_annotations(self, frame: np.ndarray, detections: List[Detection], 
                         tracks: List[Track], show_detections: bool = True, 

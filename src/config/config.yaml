@@ -39,7 +39,7 @@ detection:
 # Tracking Configuration
 tracking:
   # Tracker options: 'nvdcf', 'deepsort', 'botsort'
-  algorithm: 'deepsort'
+  algorithm: 'botsort'  # Changed to botsort for better reliability
   
   # Common tracking parameters
   max_lost_frames: 30  # Continue tracks for up to N frames without detections

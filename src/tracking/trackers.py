@@ -32,7 +32,7 @@ class TrackerDetection:
 class NvDCFTracker(BaseTracker):
     """
     NvDCF (Normalized Cross-Correlation with Discriminative Correlation Filters) tracker.
-    Uses OpenCV's implementation.
+    Uses OpenCV's implementation with fallbacks for different versions.
     """
     
     def __init__(self, config: Dict[str, Any]):
@@ -40,6 +40,61 @@ class NvDCFTracker(BaseTracker):
         super().__init__(config)
         self.trackers = {}  # track_id -> cv2.Tracker
         self.tracker_states = {}  # track_id -> state info
+        self.tracker_type = self._get_available_tracker()
+        
+        if not self.tracker_type:
+            logger.error("No OpenCV trackers available. Please install opencv-contrib-python")
+            raise RuntimeError("No OpenCV trackers available")
+        
+        logger.info(f"Using OpenCV tracker: {self.tracker_type}")
+        
+    def _get_available_tracker(self) -> Optional[str]:
+        """Get the best available OpenCV tracker."""
+        # Try different tracker types in order of preference
+        tracker_options = [
+            ('TrackerCSRT_create', 'CSRT'),
+            ('TrackerKCF_create', 'KCF'),
+            ('TrackerMOSSE_create', 'MOSSE'),
+            ('legacy.TrackerCSRT_create', 'CSRT_legacy'),
+            ('legacy.TrackerKCF_create', 'KCF_legacy'),
+            ('legacy.TrackerMOSSE_create', 'MOSSE_legacy')
+        ]
+        
+        for attr_name, tracker_name in tracker_options:
+            try:
+                # Navigate nested attributes (e.g., cv2.legacy.TrackerCSRT_create)
+                obj = cv2
+                for part in attr_name.split('.'):
+                    obj = getattr(obj, part)
+                
+                # Test if we can create a tracker
+                test_tracker = obj()
+                return tracker_name
+            except (AttributeError, Exception):
+                continue
+        
+        return None
+    
+    def _create_opencv_tracker(self):
+        """Create an OpenCV tracker instance."""
+        try:
+            if self.tracker_type == 'CSRT':
+                return cv2.TrackerCSRT_create()
+            elif self.tracker_type == 'KCF':
+                return cv2.TrackerKCF_create()
+            elif self.tracker_type == 'MOSSE':
+                return cv2.TrackerMOSSE_create()
+            elif self.tracker_type == 'CSRT_legacy':
+                return cv2.legacy.TrackerCSRT_create()
+            elif self.tracker_type == 'KCF_legacy':
+                return cv2.legacy.TrackerKCF_create()
+            elif self.tracker_type == 'MOSSE_legacy':
+                return cv2.legacy.TrackerMOSSE_create()
+            else:
+                raise RuntimeError(f"Unknown tracker type: {self.tracker_type}")
+        except Exception as e:
+            logger.error(f"Failed to create {self.tracker_type} tracker: {e}")
+            return None
         
     def update(self, detections: List[Detection], frame: np.ndarray) -> List[Track]:
         """Update tracker with new detections."""
@@ -56,6 +111,9 @@ class NvDCFTracker(BaseTracker):
         
         # Update existing trackers
         for track_id in list(self.trackers.keys()):
+            if self.trackers[track_id] is None:
+                continue
+                
             success, bbox = self.trackers[track_id].update(frame)
             
             if success:
@@ -91,8 +149,10 @@ class NvDCFTracker(BaseTracker):
                 tracks_to_remove.append(track_id)
         
         for track_id in tracks_to_remove:
-            del self.trackers[track_id]
-            del self.tracker_states[track_id]
+            if track_id in self.trackers:
+                del self.trackers[track_id]
+            if track_id in self.tracker_states:
+                del self.tracker_states[track_id]
             track = next((t for t in self.tracks if t.track_id == track_id), None)
             if track:
                 track.is_deleted = True
@@ -139,43 +199,87 @@ class NvDCFTracker(BaseTracker):
     def _create_new_track(self, detection: TrackerDetection, frame: np.ndarray) -> None:
         """Create a new track for a detection."""
         # Create OpenCV tracker
-        tracker = cv2.TrackerCSRT_create()
+        tracker = self._create_opencv_tracker()
         
-        # Initialize tracker with detection bbox
+        if tracker is None:
+            logger.warning("Failed to create tracker, skipping new track")
+            return
+        
+        # Validate and prepare detection bbox
         x1, y1, x2, y2 = detection.bbox
-        bbox = (x1, y1, x2 - x1, y2 - y1)  # Convert to x, y, w, h
         
-        success = tracker.init(frame, bbox)
-        if success:
-            track_id = self.next_track_id
-            self.next_track_id += 1
-            
-            self.trackers[track_id] = tracker
-            self.tracker_states[track_id] = {
-                'bbox': bbox,
-                'frames_since_update': 0,
-                'class_id': detection.class_id,
-                'class_name': f'class_{detection.class_id}'
-            }
-            
-            # Create track object
-            det = Detection(
-                bbox=detection.bbox,
-                confidence=detection.confidence,
-                class_id=detection.class_id,
-                class_name=f'class_{detection.class_id}',
-                frame_id=self.frame_count
-            )
-            
-            track = Track(
-                track_id=track_id,
-                detections=[det],
-                is_confirmed=False,
-                is_deleted=False,
-                frames_since_update=0
-            )
-            
-            self.tracks.append(track)
+        # Ensure coordinates are valid
+        if x1 >= x2 or y1 >= y2:
+            logger.warning(f"Invalid bounding box coordinates: {detection.bbox}")
+            return
+        
+        # Ensure coordinates are within frame bounds
+        frame_h, frame_w = frame.shape[:2]
+        x1 = max(0, min(x1, frame_w - 1))
+        y1 = max(0, min(y1, frame_h - 1))
+        x2 = max(x1 + 1, min(x2, frame_w))
+        y2 = max(y1 + 1, min(y2, frame_h))
+        
+        # Convert to x, y, w, h format with integer coordinates (OpenCV requirement)
+        width = int(x2 - x1)
+        height = int(y2 - y1)
+        
+        # Ensure minimum size for tracker
+        if width < 10 or height < 10:
+            logger.warning(f"Bounding box too small for tracking: {width}x{height}")
+            return
+        
+        bbox = (int(x1), int(y1), width, height)
+        
+        # Ensure frame is in the correct format (BGR, uint8)
+        if len(frame.shape) == 3 and frame.shape[2] == 3:
+            # Convert to BGR if needed (OpenCV trackers expect BGR)
+            if frame.dtype != np.uint8:
+                frame = (frame * 255).astype(np.uint8) if frame.max() <= 1.0 else frame.astype(np.uint8)
+        else:
+            logger.warning(f"Unexpected frame format: {frame.shape}")
+            return
+        
+        try:
+            success = tracker.init(frame, bbox)
+            if success:
+                track_id = self.next_track_id
+                self.next_track_id += 1
+                
+                self.trackers[track_id] = tracker
+                self.tracker_states[track_id] = {
+                    'bbox': bbox,
+                    'frames_since_update': 0,
+                    'class_id': detection.class_id,
+                    'class_name': f'class_{detection.class_id}'
+                }
+                
+                # Create track object
+                det = Detection(
+                    bbox=(x1, y1, x2, y2),  # Use validated coordinates
+                    confidence=detection.confidence,
+                    class_id=detection.class_id,
+                    class_name=f'class_{detection.class_id}',
+                    frame_id=self.frame_count
+                )
+                
+                track = Track(
+                    track_id=track_id,
+                    detections=[det],
+                    is_confirmed=False,
+                    is_deleted=False,
+                    frames_since_update=0
+                )
+                
+                self.tracks.append(track)
+                logger.debug(f"Successfully created track {track_id} with bbox {bbox}")
+            else:
+                logger.warning(f"Tracker initialization failed for bbox {bbox}")
+        
+        except Exception as e:
+            logger.error(f"Exception during tracker initialization: {e}")
+            logger.debug(f"Frame shape: {frame.shape}, bbox: {bbox}")
+            return
     
     def _calculate_iou(self, bbox1: Tuple[float, float, float, float], 
                       bbox2: Tuple[float, float, float, float]) -> float:
@@ -516,7 +620,7 @@ def create_tracker(config: Dict[str, Any]) -> BaseTracker:
     Raises:
         ValueError: If tracker type is not supported
     """
-    tracker_type = config.get('algorithm', 'deepsort')
+    tracker_type = config.get('algorithm', 'botsort')  # Changed default to botsort as fallback
     
     if tracker_type == 'nvdcf':
         return NvDCFTracker(config)
