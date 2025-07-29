@@ -89,8 +89,8 @@ logging:
 performance:
   # Frame processing
   skip_frames: 0  # Process every Nth frame (0 = process all)
-  resize_input: true
-  target_size: [640, 640]  # [width, height]
+  resize_input: true  # Resize camera input for performance (video files preserve original resolution)
+  target_size: [640, 640]  # [width, height] - only applied to camera sources
   
   # Device settings
   device: 'auto'  # 'auto', 'cpu', 'cuda'

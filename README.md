@@ -253,6 +253,31 @@ Support for both live camera and video file inputs with configurable parameters.
 ### ✅ Real-time Performance
 Optimized pipeline with configurable frame skipping and resizing for real-time performance.
 
+## 📺 Video Resolution Handling
+
+The system handles video resolution differently based on the input source:
+
+### 🎥 **Camera Sources**
+- **Resizing allowed** for performance optimization
+- Configurable via `performance.resize_input` and `performance.target_size`
+- Default: Resize to 640x640 for consistent processing
+- Example: Camera input at 1920x1080 → Resized to 640x640
+
+### 🎬 **Video Files**  
+- **Original resolution preserved** automatically
+- Ignores `performance.resize_input` setting to maintain video quality
+- No interpolation artifacts from resizing
+- Example: Video file at 1920x1080 → Processed at 1920x1080
+
+### ⚙️ **Configuration**
+```yaml
+performance:
+  resize_input: true  # Only affects camera sources
+  target_size: [640, 640]  # Only applied to camera input
+```
+
+This ensures optimal performance for live camera feeds while preserving the original quality and aspect ratio of video files.
+
 ## Troubleshooting
 
 ### Common Issues

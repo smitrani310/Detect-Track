@@ -30,6 +30,9 @@ class CameraSource(BaseVideoSource):
         self.target_height = config.get('height', 480)
         self.target_fps = config.get('fps', 30)
         self.cap = None
+        
+        # Camera sources can be resized for performance
+        self.allow_resize = True
     
     def open(self) -> bool:
         """
@@ -112,6 +115,9 @@ class FileSource(BaseVideoSource):
         self.cap = None
         self.current_frame = 0
         self._total_frames = 0
+        
+        # File sources should preserve original resolution
+        self.allow_resize = False
     
     def open(self) -> bool:
         """

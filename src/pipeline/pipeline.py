@@ -172,9 +172,14 @@ class DetectionTrackingPipeline:
         
         self.frame_count += 1
         
-        # Resize frame if configured
-        if self.resize_input and frame is not None:
+        # Resize frame if configured AND source allows resizing (preserve original resolution for video files)
+        if (self.resize_input and frame is not None and 
+            hasattr(self.video_source, 'allow_resize') and 
+            self.video_source.allow_resize):
             frame = cv2.resize(frame, self.target_size)
+            logger.debug(f"Resized frame to {self.target_size}")
+        elif frame is not None and hasattr(self.video_source, 'allow_resize') and not self.video_source.allow_resize:
+            logger.debug(f"Preserving original video resolution: {frame.shape[1]}x{frame.shape[0]}")
         
         return True, frame
     
