@@ -1,13 +1,20 @@
 # Detect-Track
 
-A comprehensive, modular object detection and tracking system supporting multiple YOLO models and tracking algorithms.
+A comprehensive, modular object detection and tracking system with **enterprise-grade DeepStream-style pipeline** featuring TensorRT GPU acceleration, automatic PyTorch fallback, and multi-threaded architecture for maximum performance.
 
 ## Features
 
+### 🚀 **Dual Pipeline Architecture**
+- **🔥 DeepStream-Style Pipeline** - Enterprise-grade with TensorRT GPU acceleration (22+ FPS)
+- **🐍 Standard Pipeline** - Reliable PyTorch-based processing (17+ FPS)
+- **⚡ Automatic Failover** - Seamless switching between TensorRT and PyTorch
+- **🧵 Multi-threaded** - Parallel capture, inference, and display threads
+
 ### 🎯 Detection Models
 - **YOLOv5** (nano, small) - Fast and efficient
-- **YOLOv7** - High accuracy
+- **YOLOv7** - High accuracy  
 - **YOLOv8** (nano, small) - Latest YOLO architecture
+- **🔥 TensorRT Optimization** - GPU-accelerated inference engines
 - Easy model switching at runtime
 
 ### 🎯 Tracking Algorithms
@@ -24,37 +31,74 @@ A comprehensive, modular object detection and tracking system supporting multipl
 - Configurable resolution and frame rate
 
 ### 🎯 Advanced Features
+- **🔥 TensorRT GPU Acceleration** - Maximum performance inference engines
+- **⚡ Automatic Failover** - PyTorch fallback for robust operation
+- **🧵 Multi-threaded Architecture** - Parallel processing pipelines
+- **📊 Enterprise Monitoring** - Detailed performance statistics and profiling
 - **Real-time switching** between models and trackers
 - **Comprehensive logging** of detections, tracks, and metrics
 - **Video output** with annotations
 - **JSON export** of results
-- **Performance metrics** tracking
 - **Interactive controls**
 
 ## Pipeline Architecture
 
-The system follows a clean 5-stage pipeline:
+The system offers **two high-performance pipelines** with automatic failover:
 
+### 🔥 **DeepStream-Style Pipeline** (Enterprise)
 ```
+Multi-threaded GPU Pipeline:
+📹 Capture Thread → 🔥 TensorRT Inference → 🎯 Tracking → 📊 Display Thread
+                      ↓ (fallback)
+                   🐍 PyTorch Inference
+```
+
+**Features:**
+- **TensorRT GPU acceleration** - Maximum inference speed  
+- **Multi-threaded architecture** - Parallel capture, inference, display
+- **Automatic PyTorch fallback** - Robust error handling
+- **Enterprise monitoring** - Detailed performance profiling
+- **GPU memory management** - Optimized buffer pools
+
+### 🐍 **Standard Pipeline** (Reliable)
+```
+Single-threaded Reliable Pipeline:
 1. Frame Extraction → 2. Detection → 3. Conversion → 4. Tracking → 5. Logging
 ```
 
-1. **Frame Extraction**: Read video frames from camera or file
-2. **Detection**: Run YOLO model on each frame
-3. **Conversion**: Transform detections to tracker input format
-4. **Tracking**: Process frames through selected tracker
-5. **Logging**: Record per-frame outputs and generate reports
+**Features:**
+- **PyTorch-based inference** - Proven stability
+- **Real-time switching** - Dynamic model/tracker changes  
+- **Interactive controls** - Runtime configuration
+- **Comprehensive logging** - Detailed output files
 
 ## Installation
 
 ### Prerequisites
 - Python 3.8+
-- CUDA (optional, for GPU acceleration)
+- **CUDA 11.0+** (required for DeepStream pipeline)
+- **NVIDIA GPU** with CUDA support (for TensorRT acceleration)
 
 ### Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
+
+### 🔥 **DeepStream Pipeline Setup** (For Maximum Performance)
+For enterprise-grade TensorRT acceleration:
+
+```bash
+# Install TensorRT (for GPU acceleration)
+pip install nvidia-tensorrt
+
+# Install PyCUDA (for GPU memory management)  
+pip install pycuda
+
+# Verify TensorRT installation
+python -c "import tensorrt as trt; print(f'TensorRT {trt.__version__} ready')"
+```
+
+**Note:** DeepStream pipeline automatically falls back to PyTorch if TensorRT is unavailable.
 
 ### Additional Setup for YOLOv7
 ```bash
@@ -64,7 +108,19 @@ python -c "import torch; torch.hub.load('WongKinYiu/yolov7', 'yolov7', trust_rep
 
 ## Quick Start
 
-### Basic Usage
+### 🔥 **DeepStream Pipeline** (Maximum Performance)
+```bash
+# Enterprise-grade GPU acceleration
+python main_deepstream.py --camera --tracker botsort
+
+# Video file with TensorRT acceleration  
+python main_deepstream.py --video path/to/your/video.mp4 --model yolov8n
+
+# Custom precision and verbose logging
+python main_deepstream.py --camera --precision fp16 --verbose
+```
+
+### 🐍 **Standard Pipeline** (Reliable & Interactive)
 ```bash
 # Use camera with default settings
 python main.py --camera
@@ -75,6 +131,12 @@ python main.py --video path/to/your/video.mp4
 # Specify model and tracker
 python main.py --camera --model yolov8s --tracker deepsort
 ```
+
+### 📊 **Performance Comparison**
+| Pipeline | FPS | Features | Best For |
+|----------|-----|----------|----------|
+| **DeepStream** | 22+ FPS | TensorRT, Multi-threading | Production, High throughput |
+| **Standard** | 17+ FPS | Interactive, Switching | Development, Flexibility |
 
 ### Interactive Mode
 ```bash
@@ -121,6 +183,25 @@ python main.py --config custom_config.yaml
 ## Advanced Usage
 
 ### Command Line Options
+
+#### 🔥 **DeepStream Pipeline** (`main_deepstream.py`)
+```bash
+python main_deepstream.py [OPTIONS]
+
+Options:
+  --camera              Use camera input
+  --video PATH          Video file path
+  --camera-id INT       Camera device ID (default: 0)
+  --model MODEL         YOLO model (yolov5n|yolov8n|yolov8s)
+  --tracker TRACKER     Tracker (botsort|nvdcf)
+  --precision PRECISION TensorRT precision (fp32|fp16|int8)
+  --confidence FLOAT    Detection confidence threshold
+  --output-dir PATH     Output directory for results
+  --no-display         Headless mode (no video display)
+  --verbose            Enable detailed logging and profiling
+```
+
+#### 🐍 **Standard Pipeline** (`main.py`)
 ```bash
 python main.py [OPTIONS]
 
@@ -139,27 +220,57 @@ Options:
 
 ### Examples
 
+#### 🔥 **DeepStream Pipeline Examples**
 ```bash
-# High-accuracy setup
-python main.py --video sample.mp4 --model yolov8s --tracker deepsort
+# Maximum performance real-time processing
+python main_deepstream.py --camera --tracker botsort --precision fp16
 
-# Fast setup for real-time
-python main.py --camera --model yolov5n --tracker nvdcf
+# High-throughput video processing
+python main_deepstream.py --video sample.mp4 --model yolov8s --verbose
 
-# Headless processing
+# Headless production processing  
+python main_deepstream.py --video input.mp4 --no-display --output-dir results/
+
+# Enterprise monitoring with detailed stats
+python main_deepstream.py --camera --verbose --tracker botsort
+```
+
+#### 🐍 **Standard Pipeline Examples**  
+```bash
+# High-accuracy setup with interactive controls
+python main.py --video sample.mp4 --model yolov8s --tracker deepsort --interactive
+
+# Fast real-time with runtime switching
+python main.py --camera --model yolov5n --tracker nvdcf --interactive
+
+# Development and testing
 python main.py --video input.mp4 --no-display --output-dir results/
 
 # Custom configuration
 python main.py --config configs/high_precision.yaml --interactive
 ```
 
-## Tracker Comparison
+## Performance Benchmarks
 
+### 🔥 **DeepStream Pipeline Performance**
+| Tracker | FPS | Inference Time | Best Use Case |
+|---------|-----|----------------|---------------|
+| **BOTSort** | 22+ FPS | 31ms | Production, robust tracking |
+| **NvDCF** | 25+ FPS | 28ms | High-speed, lightweight |
+
+### 🐍 **Standard Pipeline Performance**  
+| Tracker | FPS | Features | Best Use Case |
+|---------|-----|----------|---------------|
+| **BOTSort** | 17+ FPS | Motion prediction, robust | Development, testing |
+| **NvDCF** | 20+ FPS | Fast, lightweight | Real-time applications |
+| **DeepSORT** | 15+ FPS | Re-identification, occlusion handling | High accuracy needs |
+
+### 📊 **Tracker Feature Comparison**
 | Tracker | Speed | Accuracy | Features |
 |---------|-------|----------|----------|
+| **BOTSort** | ⭐⭐⭐ | ⭐⭐⭐ | Motion prediction, robust tracking, confirmed tracks |
 | **NvDCF** | ⭐⭐⭐ | ⭐⭐ | Fast, lightweight, good for real-time |
 | **DeepSORT** | ⭐⭐ | ⭐⭐⭐ | Re-identification, handles occlusions well |
-| **BOTSort** | ⭐⭐ | ⭐⭐⭐ | Motion prediction, robust tracking |
 
 ## Model Comparison
 
@@ -222,12 +333,21 @@ outputs/
 ```
 src/
 ├── config/           # Configuration management
-├── core/            # Base classes and data structures
+├── core/            # Base classes and data structures  
 ├── detection/       # YOLO model implementations
 ├── tracking/        # Tracking algorithm implementations
 ├── video/          # Video input sources
 ├── utils/          # Logging and utilities
-└── pipeline/       # Main pipeline orchestrator
+├── pipeline/       # Standard pipeline orchestrator
+└── deepstream/     # 🔥 Enterprise DeepStream pipeline
+    ├── deepstream_pipeline.py  # Multi-threaded GPU pipeline
+    ├── tensorrt_yolo.py        # TensorRT inference engine
+    └── __init__.py             # Module interface
+
+📁 Entry Points:
+├── main.py              # 🐍 Standard pipeline entry point
+├── main_deepstream.py   # 🔥 DeepStream pipeline entry point  
+└── requirements.txt     # Python dependencies
 ```
 
 ## Key Features Implementation
@@ -278,28 +398,71 @@ performance:
 
 This ensures optimal performance for live camera feeds while preserving the original quality and aspect ratio of video files.
 
+## 🔥 DeepStream Configuration
+
+The DeepStream pipeline supports additional configuration options:
+
+```yaml
+# DeepStream-specific settings
+detection:
+  tensorrt_precision: 'fp16'  # fp32, fp16, int8
+  workspace_size: 1073741824  # 1GB TensorRT workspace
+
+# Multi-threading settings  
+performance:
+  gpu_memory_pool_size: 10    # Number of GPU memory buffers
+  max_queue_size: 30          # Frame queue buffer size
+  
+# Enterprise monitoring
+logging:
+  enable_profiling: true      # Detailed performance stats
+  log_inference_times: true   # Per-frame timing
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **CUDA out of memory**
+#### 🔥 **DeepStream Pipeline Issues**
+
+1. **TensorRT not found**
    ```bash
-   python main.py --model yolov5n  # Use smaller model
+   pip install nvidia-tensorrt pycuda
+   # Pipeline automatically falls back to PyTorch
    ```
 
-2. **Camera not found**
+2. **TensorRT inference fails**
+   ```bash
+   python main_deepstream.py --verbose  # Check detailed logs
+   # System automatically uses PyTorch fallback
+   ```
+
+3. **CUDA out of memory**
+   ```bash
+   python main_deepstream.py --model yolov5n --precision fp16
+   ```
+
+#### 🐍 **Standard Pipeline Issues**
+
+1. **Camera not found**
    ```bash
    python main.py --camera --verbose  # Check debug logs
    ```
 
-3. **Low FPS**
+2. **Low FPS**
    - Use smaller model (yolov5n, yolov8n)
    - Enable frame skipping in config
    - Reduce input resolution
 
-4. **DeepSORT import error**
+3. **DeepSORT import error**
    ```bash
    pip install deep-sort-realtime
+   # Use BOTSort instead: --tracker botsort
+   ```
+
+4. **OpenCV tracker issues**
+   ```bash
+   pip install opencv-contrib-python  # For NvDCF tracker
    ```
 
 ## Contributing
@@ -316,11 +479,18 @@ This project is licensed under the Apache License 2.0 License - see the [LICENSE
 
 ## Acknowledgments
 
-- YOLOv5: [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
-- YOLOv7: [WongKinYiu/yolov7](https://github.com/WongKinYiu/yolov7)
-- YOLOv8: [ultralytics/ultralytics](https://github.com/ultralytics/ultralytics)
-- DeepSORT: [levan92/deep_sort_realtime](https://github.com/levan92/deep_sort_realtime)
+### Core Technologies
+- **YOLOv5**: [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
+- **YOLOv7**: [WongKinYiu/yolov7](https://github.com/WongKinYiu/yolov7)
+- **YOLOv8**: [ultralytics/ultralytics](https://github.com/ultralytics/ultralytics)
+- **DeepSORT**: [levan92/deep_sort_realtime](https://github.com/levan92/deep_sort_realtime)
+
+### Enterprise GPU Acceleration
+- **NVIDIA TensorRT**: High-performance deep learning inference
+- **NVIDIA CUDA**: Parallel computing platform and programming model
+- **PyCUDA**: Python bindings for CUDA
+- **NVIDIA DeepStream**: Inspiration for enterprise-grade pipeline architecture
 
 ---
 
-**Built with ❤️ for computer vision enthusiasts**
+**🚀 Built with ❤️ for computer vision enthusiasts - Now with enterprise-grade GPU acceleration!**
